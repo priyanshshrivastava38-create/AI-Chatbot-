@@ -1,7 +1,7 @@
 // validation.chatSendSchema() reads the AI config at call time, which in turn reads process.env.
 // Seed the minimum env (and a small MAX_INPUT_CHARS so the length limit is cheap to exercise)
 // before the module is used. getEnv caches on first call, so these values must be set first.
-process.env.NODE_ENV = "test";
+Object.assign(process.env, { NODE_ENV: "test" });
 process.env.DATABASE_URL = "postgresql://user:pass@localhost:5432/prism_test";
 process.env.AUTH_SECRET = "unit-test-secret-that-is-long-enough";
 process.env.AI_PROVIDER = "ollama";

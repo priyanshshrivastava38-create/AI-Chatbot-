@@ -64,8 +64,8 @@ test("hits fall out of the window once it has elapsed", async () => {
   const windowMs = 15;
   const results: RateLimitResult[] = [];
 
-  for (let index = 0; index < 2; index += 1) results.push(checkRateLimit(key, 2, windowMs));
-  assert.equal(results[1].ok, false);
+  for (let index = 0; index < 3; index += 1) results.push(checkRateLimit(key, 2, windowMs));
+  assert.equal(results[2].ok, false);
 
   await new Promise((resolve) => setTimeout(resolve, 40));
   assert.equal(checkRateLimit(key, 2, windowMs).ok, true);

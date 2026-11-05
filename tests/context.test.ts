@@ -2,7 +2,7 @@
 // present before it is imported. The branches exercised here (fits-in-budget and a single
 // over-budget message) both keep `dropped.length === 0`, so buildContext never reaches the
 // provider or the database. The drop -> rolling-summary branch does require both and is skipped.
-process.env.NODE_ENV = "test";
+Object.assign(process.env, { NODE_ENV: "test" });
 process.env.DATABASE_URL = "postgresql://user:pass@localhost:5432/prism_test";
 process.env.AUTH_SECRET = "unit-test-secret-that-is-long-enough";
 process.env.AI_PROVIDER = "ollama";

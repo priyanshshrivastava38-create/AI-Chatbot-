@@ -1,6 +1,6 @@
 // prepareUpload()/resolveUploadPath()/storeUpload() read getAiConfig() at call time. Seed the
 // minimum env (and a small MAX_UPLOAD_BYTES so the size limit is cheap to exercise) up front.
-process.env.NODE_ENV = "test";
+Object.assign(process.env, { NODE_ENV: "test" });
 process.env.DATABASE_URL = "postgresql://user:pass@localhost:5432/prism_test";
 process.env.AUTH_SECRET = "unit-test-secret-that-is-long-enough";
 process.env.AI_PROVIDER = "ollama";
