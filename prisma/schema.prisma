@@ -1,0 +1,154 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum MessageRole {
+  USER
+  ASSISTANT
+  SYSTEM
+}
+
+enum MessageStatus {
+  STREAMING
+  COMPLETED
+  CANCELLED
+  FAILED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String?
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  conversations Conversation[]
+  preferences   Preference?
+  attachments   Attachment[]
+  accounts      Account[]
+  sessions      Session[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionState String?
+  userId       String
+  expiresAt    DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expiresAt  DateTime
+
+  @@unique([identifier, token])
+}
+
+model Conversation {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String   @default("New conversation")
+  model     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Rolling summary of messages older than `summaryCovers` (context-window management).
+  summary       String?  @db.Text
+  summaryCovers Int      @default(0)
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages Message[]
+  attachments Attachment[]
+
+  @@index([userId, updatedAt(sort: Desc)])
+  @@index([userId])
+}
+
+model Message {
+  id                 String        @id @default(cuid())
+  conversationId     String
+  role               MessageRole
+  content            String        @db.Text
+  status             MessageStatus @default(COMPLETED)
+  model              String?
+  promptTokens       Int?
+  completionTokens   Int?
+  latencyMs          Int?
+  error              String?
+  suggestedFollowUps String[]      @default([])
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  attachments  Attachment[]
+
+  @@index([conversationId, createdAt])
+  @@index([createdAt])
+}
+
+model Attachment {
+  id            String   @id @default(cuid())
+  userId        String
+  conversationId String
+  messageId     String?
+  fileName      String
+  mimeType      String
+  sizeBytes     Int
+  storageKey    String   @unique
+  extractedText String?  @db.Text
+  textTruncated Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  conversation Conversation  @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  message      Message?      @relation(fields: [messageId], references: [id], onDelete: SetNull)
+
+  @@index([messageId])
+  @@index([userId])
+  @@index([conversationId])
+}
+
+model Preference {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  defaultModel    String?
+  temperature     Float    @default(0.7)
+  maxOutputTokens Int      @default(2048)
+  systemPrompt    String?  @db.Text
+  contextWindow   Int      @default(8000)
+  sendOnEnter     Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
