@@ -10,6 +10,8 @@ import { checkRateLimit } from "@/lib/rate-limit";
 import { requireUser } from "@/lib/session";
 import { chatSendSchema, readJsonBody } from "@/lib/validation";
 
+export const maxDuration = 60;
+
 export const POST = route(async (request: Request) => {
   const user = await requireUser();
   const env = getEnv();

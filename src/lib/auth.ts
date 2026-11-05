@@ -12,6 +12,8 @@ export type JwtWithUserId = { userId?: string };
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   secret: process.env.AUTH_SECRET,
+  // Behind a proxy (Vercel, containers) Auth.js cannot tell the public origin from the request.
+  trustHost: true,
   session: {
     strategy: "jwt",
     maxAge: AUTH_SESSION_MAX_AGE_SECONDS,

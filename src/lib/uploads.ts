@@ -3,6 +3,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { getAiConfig } from "./env";
 import { AppError } from "./errors";
+import { logger } from "./log";
 
 const ALLOWED_EXTENSIONS = new Set([
   "txt", "md", "markdown", "mdx", "csv", "tsv", "json", "jsonl", "ndjson", "yaml", "yml", "toml",
@@ -93,7 +94,9 @@ export async function prepareUpload(file: File): Promise<PreparedUpload> {
 }
 
 export function uploadsRoot(): string {
-  return path.resolve(process.cwd(), getAiConfig().uploadDir);
+  // Runtime-only path: without the ignore hint the bundler traces the whole project into the
+  // serverless output because the directory comes from configuration.
+  return path.resolve(/* turbopackIgnore: true */ process.cwd(), getAiConfig().uploadDir);
 }
 
 /** Writes bytes under uploads/<userId>/<uuid>.<ext> and returns the DB-relative key. */
@@ -108,8 +111,16 @@ export async function storeUpload(userId: string, upload: PreparedUpload): Promi
     throw new AppError("Unsafe upload path", 400, "invalid_upload_path");
   }
 
-  await mkdir(path.dirname(absolutePath), { recursive: true, mode: 0o700 });
-  await writeFile(absolutePath, upload.buffer, { mode: 0o600 });
+  try {
+    await mkdir(path.dirname(absolutePath), { recursive: true, mode: 0o700 });
+    await writeFile(absolutePath, upload.buffer, { mode: 0o600 });
+  } catch (error) {
+    // Serverless filesystems are read-only. The model reads extractedText from the Attachment
+    // row, so an upload still works where the original bytes cannot be kept.
+    logger.warn("upload.disk_write_failed", {
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
   return storageKey;
 }
 
